@@ -348,8 +348,8 @@ export default function BMNTools() {
           <h1 className="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
             Taeno
           </h1>
-          <p className="text-xl text-gray-700 font-medium mb-1">Tools Automasi Pengelolaan BMN</p>
-          <p className="text-gray-600">Sistem otomatis untuk generate dokumen pengelolaan Barang Milik Negara</p>
+          <p className="text-xl text-gray-700 font-medium mb-1">Tools Automasi Dokumen Pengelolaan BMN</p>
+          <p className="text-gray-600">Sistem automasi generate dokumen persetujuan pengelolaan BMN </p>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
@@ -357,9 +357,9 @@ export default function BMNTools() {
           <div className="lg:col-span-2">
             <Card className="shadow-lg border-0 bg-white/80 backdrop-blur-sm">
               <CardHeader className="bg-gradient-to-r from-blue-500 to-green-500 text-white rounded-t-lg">
-                <CardTitle className="text-xl">📝 Input Data Pengelolaan BMN</CardTitle>
+                <CardTitle className="text-xl">📝 Input Data Persetujuan Pengelolaan BMN</CardTitle>
                 <CardDescription className="text-blue-100">
-                  Isi form berikut untuk generate dokumen pengelolaan BMN
+                  Isi form berikut untuk generate dokumen persetujuan pengelolaan BMN
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
@@ -536,7 +536,7 @@ export default function BMNTools() {
                     ) : (
                       <>
                         <Send className="w-5 h-5 mr-2" />
-                        Generate Dokumen BMN
+                        Generate Dokumen Persetujuan BMN
                       </>
                     )}
                   </Button>
@@ -551,7 +551,7 @@ export default function BMNTools() {
               <CardHeader className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-t-lg">
                 <CardTitle className="text-xl">📊 Status Dokumen</CardTitle>
                 <CardDescription className="text-purple-100">
-                  Daftar dokumen yang sedang diproses atau sudah selesai
+                  Daftar dokumen diproses atau selesai
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4">
