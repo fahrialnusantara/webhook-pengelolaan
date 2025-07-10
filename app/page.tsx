@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -79,7 +78,7 @@ export default function BMNTools() {
     localStorage.setItem("bmn-documents", JSON.stringify(documents))
   }, [documents])
 
-  // Countdown timer for processing documents
+  // Countdown timer for processing documents dengan animasi smooth
   useEffect(() => {
     const interval = setInterval(() => {
       setDocuments((prev) =>
@@ -87,7 +86,7 @@ export default function BMNTools() {
           if (doc.status === "processing" && doc.remainingTime && doc.remainingTime > 0) {
             return {
               ...doc,
-              remainingTime: doc.remainingTime - 1,
+              remainingTime: Math.max(0, doc.remainingTime - 1),
             }
           }
           return doc
@@ -98,10 +97,12 @@ export default function BMNTools() {
     return () => clearInterval(interval)
   }, [])
 
-  // Poll for document status updates every 5 seconds
+  // Poll for document status updates every 2 seconds (lebih responsif)
   useEffect(() => {
     const pollDocuments = async () => {
       const processingDocs = documents.filter((doc) => doc.status === "processing")
+
+      if (processingDocs.length === 0) return
 
       for (const doc of processingDocs) {
         try {
@@ -125,30 +126,32 @@ export default function BMNTools() {
               ),
             )
 
-            // Show toast notification
-            if (result.status === "completed") {
-              toast({
-                title: "✅ Dokumen Selesai",
-                description: `Dokumen ${doc.id} berhasil diproses`,
-              })
-            } else if (result.status === "error") {
-              toast({
-                title: "❌ Dokumen Gagal",
-                description: `Dokumen ${doc.id} gagal diproses`,
-                variant: "destructive",
-              })
-            }
-          }
-        } catch (error) {
+          // Show toast notification
+          if (result.status === "completed") {
+            toast({
+              title: "✅ Dokumen Selesai",
+              description: `Dokumen ${doc.id} berhasil diproses`,
+            })
+          } else if (result.status === "error") {
+            toast({
+              title: "❌ Dokumen Gagal",
+              description: `Dokumen ${doc.id} gagal diproses`,
+              variant: "destructive",
+            })
+          }\
+        } catch (error) 
           console.error("Error polling document status:", error)
-        }
       }
     }
-
-    const interval = setInterval(pollDocuments, 5000)
+\
+    // Initial poll immediately
+    pollDocuments();
+    
+    // Then poll every 2 seconds
+    const interval = setInterval(pollDocuments, 2000)
     return () => clearInterval(interval)
   }, [documents, toast])
-
+\
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -228,8 +231,8 @@ export default function BMNTools() {
     try {
       const documentId = generateDocumentId(formData.jenisPengelolaan)
 
-      // Estimate processing time (2-3 minutes)
-      const estimatedTime = Math.floor(Math.random() * 20) + 30 // 120-180 seconds
+      // Estimate processing time (30-50 seconds untuk lebih realistis)
+      const estimatedTime = Math.floor(Math.random() * 21) + 30 // 30-50 seconds
 
       // Add document to processing state
       const newDoc: DocumentStatus = {
@@ -256,6 +259,34 @@ export default function BMNTools() {
           title: "🚀 Data Berhasil Dikirim",
           description: "Dokumen sedang diproses, silakan tunggu...",
         })
+
+        // Immediate status check after 3 seconds
+        setTimeout(async () => {
+          try {
+            const statusResponse = await fetch(`/api/documents/status/${documentId}`)
+            const statusResult = await statusResponse.json()
+            
+            if (statusResult.success && statusResult.status !== "processing") {
+              setDocuments((prev) =>
+                prev.map((d) =>
+                  d.id === documentId
+                    ? {
+                        ...d,
+                        status: statusResult.status,
+                        mainDocumentId: statusResult.mainDocumentId,
+                        notaPengantarId: statusResult.notaPengantarId,
+                        mainDownloadLink: statusResult.mainDownloadLink,
+                        notaPengantarLink: statusResult.notaPengantarLink,
+                        remainingTime: 0,
+                      }
+                    : d,
+                ),
+              )
+            }
+          } catch (error) {
+            console.error("Error checking immediate status:", error)
+          }
+        }, 3000)
 
         // Reset form
         setFormData({
@@ -298,8 +329,11 @@ export default function BMNTools() {
   }
 
   const getProgressPercentage = (doc: DocumentStatus) => {
-    if (!doc.estimatedCompletionTime || !doc.remainingTime) return 0
-    return Math.max(0, ((doc.estimatedCompletionTime - doc.remainingTime) / doc.estimatedCompletionTime) * 100)
+    if (!doc.estimatedCompletionTime || doc.remainingTime === undefined) return 0
+    if (doc.remainingTime <= 0) return 100
+    
+    const progress = ((doc.estimatedCompletionTime - doc.remainingTime) / doc.estimatedCompletionTime) * 100
+    return Math.max(0, Math.min(100, progress))
   }
 
   const renderConditionalFields = () => {
@@ -470,7 +504,6 @@ export default function BMNTools() {
                         value={formData.satker}
                         onChange={(e) => handleInputChange("satker", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
-                        placeholder="masukkan nama satuan kerja..."
                         required
                       />
                     </div>
@@ -491,7 +524,6 @@ export default function BMNTools() {
                         value={formData.suratDari}
                         onChange={(e) => handleInputChange("suratDari", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
-                        placeholder="contoh: Kepala Kantor Pelayanan......"
                         required
                       />
                     </div>
@@ -504,7 +536,6 @@ export default function BMNTools() {
                         value={formData.nomor}
                         onChange={(e) => handleInputChange("nomor", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
-                        placeholder="masukkan nomor surat"
                         required
                       />
                     </div>
@@ -533,7 +564,6 @@ export default function BMNTools() {
                       value={formData.hal}
                       onChange={(e) => handleInputChange("hal", e.target.value)}
                       className="border-gray-200 focus:border-blue-400"
-                      placeholder="masukkan perihal surat"
                       required
                     />
                   </div>
@@ -655,7 +685,10 @@ export default function BMNTools() {
                                 <span className="font-mono">{formatTime(doc.remainingTime)}</span>
                               </div>
                             </div>
-                            <Progress value={getProgressPercentage(doc)} className="h-2 bg-gray-200" />
+                            <Progress 
+                              value={getProgressPercentage(doc)} 
+                              className="h-2 bg-gray-200 transition-all duration-300 ease-in-out" 
+                            />
                             <p className="text-xs text-gray-500 text-center">
                               Estimasi selesai dalam {formatTime(doc.remainingTime)}
                             </p>
@@ -697,5 +730,5 @@ export default function BMNTools() {
         </div>
       </div>
     </div>
-  )
+  )\
 }
