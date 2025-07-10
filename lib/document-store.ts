@@ -1,54 +1,51 @@
-// Shared document store that can be used across API routes
-class DocumentStore {
-  private static instance: DocumentStore
-  private documents = new Map<string, any>()
+// Simple in-memory storage for document status
+// In production, this should be replaced with a proper database
 
-  private constructor() {}
+interface DocumentStatus {
+  id: string
+  status: "processing" | "completed" | "error"
+  mainDocumentId?: string
+  notaPengantarId?: string
+  mainDownloadLink?: string
+  notaPengantarLink?: string
+  createdAt: string
+  updatedAt?: string
+}
 
-  static getInstance(): DocumentStore {
-    if (!DocumentStore.instance) {
-      DocumentStore.instance = new DocumentStore()
-    }
-    return DocumentStore.instance
-  }
+// In-memory storage
+const documentStore = new Map<string, DocumentStatus>()
 
-  setDocument(documentId: string, data: any) {
-    console.log(`Setting document ${documentId}:`, data)
-    this.documents.set(documentId, {
-      ...data,
-      updatedAt: new Date().toISOString(),
-    })
-  }
+export function updateDocumentStatus(documentId: string, updates: Partial<Omit<DocumentStatus, "id" | "createdAt">>) {
+  const existing = documentStore.get(documentId)
 
-  getDocument(documentId: string) {
-    const doc = this.documents.get(documentId)
-    console.log(`Getting document ${documentId}:`, doc)
-    return doc
-  }
-
-  getAllDocuments() {
-    return Array.from(this.documents.entries()).map(([id, data]) => ({
-      id,
-      ...data,
-    }))
-  }
-
-  deleteDocument(documentId: string) {
-    return this.documents.delete(documentId)
-  }
-
-  // Update specific fields of a document
-  updateDocument(documentId: string, updates: any) {
-    const existing = this.documents.get(documentId) || {}
+  if (existing) {
     const updated = {
       ...existing,
       ...updates,
       updatedAt: new Date().toISOString(),
     }
-    this.documents.set(documentId, updated)
+    documentStore.set(documentId, updated)
     console.log(`Updated document ${documentId}:`, updated)
-    return updated
+  } else {
+    // Create new document status if it doesn't exist
+    const newDoc: DocumentStatus = {
+      id: documentId,
+      status: "processing",
+      createdAt: new Date().toISOString(),
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    documentStore.set(documentId, newDoc)
+    console.log(`Created document ${documentId}:`, newDoc)
   }
 }
 
-export const documentStore = DocumentStore.getInstance()
+export function getDocumentStatus(documentId: string): DocumentStatus | null {
+  return documentStore.get(documentId) || null
+}
+
+export function getAllDocuments(): DocumentStatus[] {
+  return Array.from(documentStore.values()).sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  )
+}
