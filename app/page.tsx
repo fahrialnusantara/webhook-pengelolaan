@@ -30,6 +30,8 @@ interface FormData {
   periodesitas?: string
   nilaiWajar?: string
   nilaiPerolehan?: string
+  nilaiPersetujuan?: string
+  beritaAcara?: string
   kodeMAP?: string
   pic: string
 }
@@ -43,9 +45,6 @@ interface DocumentStatus {
   notaPengantarLink?: string
   createdAt: string
 }
-
-// Counter untuk nomor urut dokumen
-let documentCounter = 1
 
 export default function BMNTools() {
   const { toast } = useToast()
@@ -69,12 +68,6 @@ export default function BMNTools() {
     if (savedDocs) {
       const docs = JSON.parse(savedDocs)
       setDocuments(docs)
-      // Set counter berdasarkan dokumen yang ada
-      if (docs.length > 0) {
-        const lastDoc = docs[0]
-        const lastNumber = Number.parseInt(lastDoc.id.split("_")[1]) || 0
-        documentCounter = lastNumber + 1
-      }
     }
   }, [])
 
@@ -138,13 +131,23 @@ export default function BMNTools() {
   }
 
   const generateDocumentId = (jenisPengelolaan: string) => {
-    const currentNumber = documentCounter
-    documentCounter++
-    return `${jenisPengelolaan}_${currentNumber.toString().padStart(3, "0")}`
+    const randomNumber = Math.floor(Math.random() * 900000) + 100000 // 6 digit random number
+    return `${jenisPengelolaan}_${randomNumber}`
   }
 
   const validateForm = () => {
-    const { jenisPengelolaan } = formData
+    const { jenisPengelolaan, kodeSatker } = formData
+
+    // Validate kode satker (must be exactly 20 characters - alphanumeric)
+    if (kodeSatker && kodeSatker.length !== 20) {
+      toast({
+        title: "⚠️ Kode Satker Tidak Valid",
+        description: "Kode Satker harus terdiri dari 20 karakter (huruf dan angka)",
+        variant: "destructive",
+      })
+      return false
+    }
+
     const requiredFields = [
       "jenisPengelolaan",
       "kodeSatker",
@@ -158,20 +161,12 @@ export default function BMNTools() {
     ]
 
     // Add conditional required fields
-    if (jenisPengelolaan === "sewa") {
-      requiredFields.push(
-        "pimpinanSatker",
-        "alamatKantorSatker",
-        "alamatObjekSewa",
-        "jangkaWaktuSewa",
-        "periodesitas",
-        "nilaiWajar",
-        "kodeMAP",
-      )
+    if (jenisPengelolaan === "psp") {
+      requiredFields.push("nilaiPerolehan")
     }
 
-    if (jenisPengelolaan === "psp" || jenisPengelolaan === "penjualan") {
-      requiredFields.push("nilaiPerolehan")
+    if (jenisPengelolaan === "penjualan") {
+      requiredFields.push("nilaiPerolehan", "nilaiPersetujuan", "beritaAcara", "kodeMAP")
     }
 
     for (const field of requiredFields) {
@@ -261,114 +256,7 @@ export default function BMNTools() {
   const renderConditionalFields = () => {
     const { jenisPengelolaan } = formData
 
-    if (jenisPengelolaan === "sewa") {
-      return (
-        <>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="pimpinanSatker" className="text-blue-700 font-medium">
-                Pimpinan Satker <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="pimpinanSatker"
-                value={formData.pimpinanSatker || ""}
-                onChange={(e) => handleInputChange("pimpinanSatker", e.target.value)}
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="alamatKantorSatker" className="text-blue-700 font-medium">
-                Alamat Kantor Satker <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="alamatKantorSatker"
-                value={formData.alamatKantorSatker || ""}
-                onChange={(e) => handleInputChange("alamatKantorSatker", e.target.value)}
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="alamatObjekSewa" className="text-blue-700 font-medium">
-                Alamat Objek Sewa <span className="text-red-500">*</span>
-              </Label>
-              <Textarea
-                id="alamatObjekSewa"
-                value={formData.alamatObjekSewa || ""}
-                onChange={(e) => handleInputChange("alamatObjekSewa", e.target.value)}
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="jangkaWaktuSewa" className="text-blue-700 font-medium">
-                Jangka Waktu Sewa <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="jangkaWaktuSewa"
-                value={formData.jangkaWaktuSewa || ""}
-                onChange={(e) => handleInputChange("jangkaWaktuSewa", e.target.value)}
-                placeholder="contoh: 12 bulan"
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label htmlFor="periodesitas" className="text-blue-700 font-medium">
-                Periodesitas <span className="text-red-500">*</span>
-              </Label>
-              <Select
-                value={formData.periodesitas || ""}
-                onValueChange={(value) => handleInputChange("periodesitas", value)}
-                required
-              >
-                <SelectTrigger className="border-blue-200 focus:border-blue-400">
-                  <SelectValue placeholder="Pilih periodesitas" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="bulanan">Bulanan</SelectItem>
-                  <SelectItem value="semesteran">Semesteran</SelectItem>
-                  <SelectItem value="tahunan">Tahunan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="nilaiWajar" className="text-blue-700 font-medium">
-                Nilai Wajar <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="nilaiWajar"
-                type="number"
-                value={formData.nilaiWajar || ""}
-                onChange={(e) => handleInputChange("nilaiWajar", e.target.value)}
-                placeholder="Rp"
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="kodeMAP" className="text-blue-700 font-medium">
-                Kode MAP <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="kodeMAP"
-                value={formData.kodeMAP || ""}
-                onChange={(e) => handleInputChange("kodeMAP", e.target.value)}
-                className="border-blue-200 focus:border-blue-400"
-                required
-              />
-            </div>
-          </div>
-        </>
-      )
-    }
-
-    if (jenisPengelolaan === "psp" || jenisPengelolaan === "penjualan") {
+    if (jenisPengelolaan === "psp") {
       return (
         <div>
           <Label htmlFor="nilaiPerolehan" className="text-green-700 font-medium">
@@ -384,6 +272,69 @@ export default function BMNTools() {
             required
           />
         </div>
+      )
+    }
+
+    if (jenisPengelolaan === "penjualan") {
+      return (
+        <>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="nilaiPerolehan" className="text-purple-700 font-medium">
+                Nilai Perolehan <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="nilaiPerolehan"
+                type="number"
+                value={formData.nilaiPerolehan || ""}
+                onChange={(e) => handleInputChange("nilaiPerolehan", e.target.value)}
+                placeholder="Rp"
+                className="border-purple-200 focus:border-purple-400"
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="nilaiPersetujuan" className="text-purple-700 font-medium">
+                Nilai Persetujuan <span className="text-red-500">*</span>
+              </Label>
+              <Input
+                id="nilaiPersetujuan"
+                type="number"
+                value={formData.nilaiPersetujuan || ""}
+                onChange={(e) => handleInputChange("nilaiPersetujuan", e.target.value)}
+                placeholder="Rp"
+                className="border-purple-200 focus:border-purple-400"
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="beritaAcara" className="text-purple-700 font-medium">
+              Berita Acara <span className="text-red-500">*</span>
+            </Label>
+            <Textarea
+              id="beritaAcara"
+              value={formData.beritaAcara || ""}
+              onChange={(e) => handleInputChange("beritaAcara", e.target.value)}
+              placeholder="Berita Acara Penelitian/Pemeriksaan Panitia Penghapusan Barang Milik Negara Nomor xxxx tanggal 1 Juli 2025"
+              className="border-purple-200 focus:border-purple-400"
+              rows={3}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="kodeMAP" className="text-purple-700 font-medium">
+              Kode MAP <span className="text-red-500">*</span>
+            </Label>
+            <Input
+              id="kodeMAP"
+              value={formData.kodeMAP || ""}
+              onChange={(e) => handleInputChange("kodeMAP", e.target.value)}
+              className="border-purple-200 focus:border-purple-400"
+              required
+            />
+          </div>
+        </>
       )
     }
 
@@ -427,9 +378,11 @@ export default function BMNTools() {
                         <SelectValue placeholder="Pilih jenis pengelolaan" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="sewa">🏢 Sewa</SelectItem>
                         <SelectItem value="psp">🤝 PSP (Penetapan Status Penggunaan)</SelectItem>
                         <SelectItem value="penjualan">💰 Penjualan</SelectItem>
+                        <SelectItem value="sewa" disabled>
+                          🏢 Sewa (Dalam Pengembangan)
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -443,11 +396,21 @@ export default function BMNTools() {
                       <Input
                         id="kodeSatker"
                         value={formData.kodeSatker}
-                        onChange={(e) => handleInputChange("kodeSatker", e.target.value)}
-                        placeholder="contoh: 123456"
+                        onChange={(e) => {
+                          // Allow alphanumeric characters and limit to 20 characters
+                          const value = e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 20)
+                          handleInputChange("kodeSatker", value)
+                        }}
+                        placeholder="20 karakter (huruf/angka, contoh: ABC12345678901234567)"
                         className="border-gray-200 focus:border-blue-400"
+                        maxLength={20}
                         required
                       />
+                      {formData.kodeSatker && formData.kodeSatker.length !== 20 && (
+                        <p className="text-red-500 text-xs mt-1">
+                          Kode Satker harus 20 karakter ({formData.kodeSatker.length}/20)
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="satker" className="text-gray-700 font-medium">
@@ -499,9 +462,10 @@ export default function BMNTools() {
                       </Label>
                       <Input
                         id="tanggal"
-                        type="date"
+                        type="text"
                         value={formData.tanggal}
                         onChange={(e) => handleInputChange("tanggal", e.target.value)}
+                        placeholder="contoh: 1 Juli 2025"
                         className="border-gray-200 focus:border-blue-400"
                         required
                       />
@@ -527,13 +491,19 @@ export default function BMNTools() {
                       <Label htmlFor="jenisBMN" className="text-gray-700 font-medium">
                         Jenis BMN <span className="text-red-500">*</span>
                       </Label>
-                      <Input
-                        id="jenisBMN"
+                      <Select
                         value={formData.jenisBMN}
-                        onChange={(e) => handleInputChange("jenisBMN", e.target.value)}
-                        className="border-gray-200 focus:border-blue-400"
+                        onValueChange={(value) => handleInputChange("jenisBMN", value)}
                         required
-                      />
+                      >
+                        <SelectTrigger className="border-gray-200 focus:border-blue-400">
+                          <SelectValue placeholder="Pilih jenis BMN" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="tanah-bangunan">🏗️ Tanah dan/atau Bangunan</SelectItem>
+                          <SelectItem value="selain-tanah-bangunan">📦 Selain Tanah dan/atau Bangunan</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
                       <Label htmlFor="pic" className="text-gray-700 font-medium">
