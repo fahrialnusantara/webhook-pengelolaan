@@ -2,79 +2,53 @@ import { type NextRequest, NextResponse } from "next/server"
 
 export async function POST(request: NextRequest) {
   try {
-    const { documentId, formData } = await request.json()
+    const body = await request.json()
+    const { documentId, formData } = body
 
-    console.log("=== SENDING TO N8N ===")
-    console.log("Document ID:", documentId)
-    console.log("Form Data:", JSON.stringify(formData, null, 2))
+    console.log("Sending webhook with data:", { documentId, formData })
 
-    const n8nWebhookUrl = process.env.N8N_WEBHOOK_URL
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL
-
-    console.log("N8N Webhook URL:", n8nWebhookUrl)
-    console.log("Callback URL:", `${baseUrl}/api/webhook/callback`)
-
-    if (!n8nWebhookUrl) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "N8N_WEBHOOK_URL not configured",
-        },
-        { status: 500 },
-      )
+    // Get webhook URL from environment
+    const webhookUrl = process.env.N8N_WEBHOOK_URL
+    if (!webhookUrl) {
+      throw new Error("N8N_WEBHOOK_URL not configured")
     }
 
-    const payload = {
-      documentId,
-      formData,
-      callbackUrl: `${baseUrl}/api/webhook/callback`,
-      timestamp: new Date().toISOString(),
-    }
+    // Prepare callback URL
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || request.nextUrl.origin
+    const callbackUrl = `${baseUrl}/api/webhook/callback`
 
-    console.log("Sending payload to n8n:", JSON.stringify(payload, null, 2))
-
-    try {
-      const response = await fetch(n8nWebhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      })
-
-      const responseText = await response.text()
-      console.log("N8N Response Status:", response.status)
-      console.log("N8N Response:", responseText)
-
-      if (!response.ok) {
-        throw new Error(`n8n webhook failed: ${response.status} - ${responseText}`)
-      }
-
-      return NextResponse.json({
-        success: true,
+    // Send to n8n webhook
+    const response = await fetch(webhookUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
         documentId,
-        message: "Data sent to processing pipeline",
-        n8nResponse: responseText,
-        callbackUrl: `${baseUrl}/api/webhook/callback`,
-      })
-    } catch (webhookError) {
-      console.error("=== N8N WEBHOOK ERROR ===")
-      console.error("Error:", webhookError)
-      return NextResponse.json(
-        {
-          success: false,
-          error: `Failed to send data to n8n: ${webhookError.message}`,
-        },
-        { status: 500 },
-      )
+        formData,
+        callbackUrl,
+        timestamp: new Date().toISOString(),
+      }),
+    })
+
+    if (!response.ok) {
+      throw new Error(`Webhook failed: ${response.status} ${response.statusText}`)
     }
+
+    const result = await response.text()
+    console.log("Webhook response:", result)
+
+    return NextResponse.json({
+      success: true,
+      message: "Data sent to webhook successfully",
+      documentId,
+    })
   } catch (error) {
-    console.error("=== WEBHOOK SEND ERROR ===")
-    console.error("Error:", error)
+    console.error("Webhook send error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to send data",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
