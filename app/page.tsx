@@ -470,6 +470,7 @@ export default function BMNTools() {
                         value={formData.satker}
                         onChange={(e) => handleInputChange("satker", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="masukkan nama satuan kerja..."
                         required
                       />
                     </div>
@@ -490,6 +491,7 @@ export default function BMNTools() {
                         value={formData.suratDari}
                         onChange={(e) => handleInputChange("suratDari", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="contoh: Kepala Kantor Pelayanan......"
                         required
                       />
                     </div>
@@ -502,6 +504,7 @@ export default function BMNTools() {
                         value={formData.nomor}
                         onChange={(e) => handleInputChange("nomor", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="masukkan nomor surat"
                         required
                       />
                     </div>
@@ -530,6 +533,7 @@ export default function BMNTools() {
                       value={formData.hal}
                       onChange={(e) => handleInputChange("hal", e.target.value)}
                       className="border-gray-200 focus:border-blue-400"
+                      placeholder="masukkan perihal surat"
                       required
                     />
                   </div>
