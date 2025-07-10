@@ -1,43 +1,25 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { documentStore } from "@/lib/document-store"
+import { getDocumentStatus } from "@/lib/document-store"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const documentId = params.id
-    console.log(`=== CHECKING STATUS FOR ${documentId} ===`)
+    const status = getDocumentStatus(documentId)
 
-    // Check if we have a status update from the callback
-    const storedStatus = documentStore.getDocument(documentId)
-
-    if (storedStatus) {
-      console.log("Found stored status:", storedStatus)
-      return NextResponse.json({
-        success: true,
-        documentId,
-        status: storedStatus.status,
-        mainDocumentId: storedStatus.mainDocumentId,
-        notaPengantarId: storedStatus.notaPengantarId,
-        mainDownloadLink: storedStatus.mainDownloadLink,
-        notaPengantarLink: storedStatus.notaPengantarLink,
-        error: storedStatus.error,
-        updatedAt: storedStatus.updatedAt,
-      })
+    if (!status) {
+      return NextResponse.json({ success: false, error: "Document not found" }, { status: 404 })
     }
 
-    console.log("No stored status found, returning processing")
-    // If no stored status, return processing
     return NextResponse.json({
       success: true,
-      documentId,
-      status: "processing",
-      message: "Document is still being processed",
+      ...status,
     })
   } catch (error) {
-    console.error("Document status error:", error)
+    console.error("Get document status error:", error)
     return NextResponse.json(
       {
         success: false,
-        error: "Failed to get document status",
+        error: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 },
     )
