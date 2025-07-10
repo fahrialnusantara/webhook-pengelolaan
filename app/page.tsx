@@ -619,6 +619,9 @@ export default function BMNTools() {
             </Card>
           </div>
         </div>
+         <footer className="mt-8 py-4 text-center text-sm text-gray-500">
+          <p>Created by Fahrial - Copyright © KPKNL Ambon 2025</p>
+        </footer>
       </div>
     </div>
   )
