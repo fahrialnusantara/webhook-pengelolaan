@@ -379,7 +379,7 @@ export default function BMNTools() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="psp">🤝 PSP (Penetapan Status Penggunaan)</SelectItem>
-                        <SelectItem value="penjualan">💰 Penjualan</SelectItem>
+                        <SelectItem value="penjualan" disabled>💰 Penjualan (Dalam Pengembangan)</SelectItem>
                         <SelectItem value="sewa" disabled>
                           🏢 Sewa (Dalam Pengembangan)
                         </SelectItem>
@@ -421,6 +421,7 @@ export default function BMNTools() {
                         value={formData.satker}
                         onChange={(e) => handleInputChange("satker", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="contoh: Pengadilan Negeri ..."
                         required
                       />
                     </div>
@@ -441,6 +442,7 @@ export default function BMNTools() {
                         value={formData.suratDari}
                         onChange={(e) => handleInputChange("suratDari", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="contoh: Kepala Badan Pemeriksa Keuangan ..."
                         required
                       />
                     </div>
@@ -453,6 +455,7 @@ export default function BMNTools() {
                         value={formData.nomor}
                         onChange={(e) => handleInputChange("nomor", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
+                        placeholder="masukkan nomor surat..."
                         required
                       />
                     </div>
@@ -481,6 +484,7 @@ export default function BMNTools() {
                       value={formData.hal}
                       onChange={(e) => handleInputChange("hal", e.target.value)}
                       className="border-gray-200 focus:border-blue-400"
+                      placeholder="masukkan perihal surat ..."
                       required
                     />
                   </div>
@@ -564,7 +568,7 @@ export default function BMNTools() {
                           <span className="font-medium text-sm text-gray-800">{doc.id}</span>
                           {doc.status === "processing" && (
                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                              <Clock className="w-3 h-3 mr-1" />
+                              <Clock className="w-3 h-3 mr-1 animate-spin" />
                               Processing
                             </Badge>
                           )}
