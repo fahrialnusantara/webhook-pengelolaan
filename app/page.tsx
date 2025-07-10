@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -10,8 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { Progress } from "@/components/ui/progress"
-import { Send, CheckCircle, Clock, AlertCircle, FileText, Mail, Timer } from "lucide-react"
+import { Send, CheckCircle, Clock, AlertCircle, FileText, Mail } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 
 interface FormData {
@@ -44,8 +44,6 @@ interface DocumentStatus {
   mainDownloadLink?: string
   notaPengantarLink?: string
   createdAt: string
-  estimatedCompletionTime?: number // in seconds
-  remainingTime?: number // in seconds
 }
 
 export default function BMNTools() {
@@ -78,31 +76,10 @@ export default function BMNTools() {
     localStorage.setItem("bmn-documents", JSON.stringify(documents))
   }, [documents])
 
-  // Countdown timer for processing documents dengan animasi smooth
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDocuments((prev) =>
-        prev.map((doc) => {
-          if (doc.status === "processing" && doc.remainingTime && doc.remainingTime > 0) {
-            return {
-              ...doc,
-              remainingTime: Math.max(0, doc.remainingTime - 1),
-            }
-          }
-          return doc
-        }),
-      )
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [])
-
-  // Poll for document status updates every 2 seconds (lebih responsif)
+  // Poll for document status updates every 5 seconds
   useEffect(() => {
     const pollDocuments = async () => {
       const processingDocs = documents.filter((doc) => doc.status === "processing")
-
-      if (processingDocs.length === 0) return
 
       for (const doc of processingDocs) {
         try {
@@ -120,38 +97,35 @@ export default function BMNTools() {
                       notaPengantarId: result.notaPengantarId,
                       mainDownloadLink: result.mainDownloadLink,
                       notaPengantarLink: result.notaPengantarLink,
-                      remainingTime: 0,
                     }
                   : d,
               ),
             )
 
-          // Show toast notification
-          if (result.status === "completed") {
-            toast({
-              title: "✅ Dokumen Selesai",
-              description: `Dokumen ${doc.id} berhasil diproses`,
-            })
-          } else if (result.status === "error") {
-            toast({
-              title: "❌ Dokumen Gagal",
-              description: `Dokumen ${doc.id} gagal diproses`,
-              variant: "destructive",
-            })
-          }\
-        } catch (error) 
+            // Show toast notification
+            if (result.status === "completed") {
+              toast({
+                title: "✅ Dokumen Selesai",
+                description: `Dokumen ${doc.id} berhasil diproses`,
+              })
+            } else if (result.status === "error") {
+              toast({
+                title: "❌ Dokumen Gagal",
+                description: `Dokumen ${doc.id} gagal diproses`,
+                variant: "destructive",
+              })
+            }
+          }
+        } catch (error) {
           console.error("Error polling document status:", error)
+        }
       }
     }
-\
-    // Initial poll immediately
-    pollDocuments();
-    
-    // Then poll every 2 seconds
-    const interval = setInterval(pollDocuments, 2000)
+
+    const interval = setInterval(pollDocuments, 5000)
     return () => clearInterval(interval)
   }, [documents, toast])
-\
+
   const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
@@ -162,23 +136,13 @@ export default function BMNTools() {
   }
 
   const validateForm = () => {
-    const { jenisPengelolaan, kodeSatker, pic } = formData
+    const { jenisPengelolaan, kodeSatker } = formData
 
     // Validate kode satker (must be exactly 20 characters - alphanumeric)
     if (kodeSatker && kodeSatker.length !== 20) {
       toast({
         title: "⚠️ Kode Satker Tidak Valid",
         description: "Kode Satker harus terdiri dari 20 karakter (huruf dan angka)",
-        variant: "destructive",
-      })
-      return false
-    }
-
-    // Validate PIC (must be text only - letters and spaces)
-    if (pic && !/^[a-zA-Z\s]+$/.test(pic)) {
-      toast({
-        title: "⚠️ PIC Tidak Valid",
-        description: "PIC hanya boleh berisi huruf dan spasi",
         variant: "destructive",
       })
       return false
@@ -220,7 +184,7 @@ export default function BMNTools() {
     if (!validateForm()) {
       toast({
         title: "⚠️ Form Tidak Lengkap",
-        description: "Mohon lengkapi semua field yang wajib diisi dengan benar",
+        description: "Mohon lengkapi semua field yang wajib diisi",
         variant: "destructive",
       })
       return
@@ -231,16 +195,11 @@ export default function BMNTools() {
     try {
       const documentId = generateDocumentId(formData.jenisPengelolaan)
 
-      // Estimate processing time (30-50 seconds untuk lebih realistis)
-      const estimatedTime = Math.floor(Math.random() * 21) + 30 // 30-50 seconds
-
       // Add document to processing state
       const newDoc: DocumentStatus = {
         id: documentId,
         status: "processing",
         createdAt: new Date().toISOString(),
-        estimatedCompletionTime: estimatedTime,
-        remainingTime: estimatedTime,
       }
       setDocuments((prev) => [newDoc, ...prev.slice(0, 4)]) // Keep max 5 documents
 
@@ -259,34 +218,6 @@ export default function BMNTools() {
           title: "🚀 Data Berhasil Dikirim",
           description: "Dokumen sedang diproses, silakan tunggu...",
         })
-
-        // Immediate status check after 3 seconds
-        setTimeout(async () => {
-          try {
-            const statusResponse = await fetch(`/api/documents/status/${documentId}`)
-            const statusResult = await statusResponse.json()
-            
-            if (statusResult.success && statusResult.status !== "processing") {
-              setDocuments((prev) =>
-                prev.map((d) =>
-                  d.id === documentId
-                    ? {
-                        ...d,
-                        status: statusResult.status,
-                        mainDocumentId: statusResult.mainDocumentId,
-                        notaPengantarId: statusResult.notaPengantarId,
-                        mainDownloadLink: statusResult.mainDownloadLink,
-                        notaPengantarLink: statusResult.notaPengantarLink,
-                        remainingTime: 0,
-                      }
-                    : d,
-                ),
-              )
-            }
-          } catch (error) {
-            console.error("Error checking immediate status:", error)
-          }
-        }, 3000)
 
         // Reset form
         setFormData({
@@ -320,20 +251,6 @@ export default function BMNTools() {
   const downloadDocument = (documentId: string, type: "main" | "nota") => {
     const downloadLink = `https://docs.google.com/document/d/${documentId}/export?format=doc`
     window.open(downloadLink, "_blank")
-  }
-
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60)
-    const remainingSeconds = seconds % 60
-    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`
-  }
-
-  const getProgressPercentage = (doc: DocumentStatus) => {
-    if (!doc.estimatedCompletionTime || doc.remainingTime === undefined) return 0
-    if (doc.remainingTime <= 0) return 100
-    
-    const progress = ((doc.estimatedCompletionTime - doc.remainingTime) / doc.estimatedCompletionTime) * 100
-    return Math.max(0, Math.min(100, progress))
   }
 
   const renderConditionalFields = () => {
@@ -595,18 +512,10 @@ export default function BMNTools() {
                       <Input
                         id="pic"
                         value={formData.pic}
-                        onChange={(e) => {
-                          // Only allow letters and spaces
-                          const value = e.target.value.replace(/[^a-zA-Z\s]/g, "")
-                          handleInputChange("pic", value)
-                        }}
-                        placeholder="Nama lengkap (hanya huruf, contoh: John Doe)"
+                        onChange={(e) => handleInputChange("pic", e.target.value)}
                         className="border-gray-200 focus:border-blue-400"
                         required
                       />
-                      {formData.pic && !/^[a-zA-Z\s]*$/.test(formData.pic) && (
-                        <p className="text-red-500 text-xs mt-1">PIC hanya boleh berisi huruf dan spasi</p>
-                      )}
                     </div>
                   </div>
 
@@ -655,7 +564,7 @@ export default function BMNTools() {
                           <span className="font-medium text-sm text-gray-800">{doc.id}</span>
                           {doc.status === "processing" && (
                             <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
-                              <Clock className="w-3 h-3 mr-1 animate-spin" />
+                              <Clock className="w-3 h-3 mr-1" />
                               Processing
                             </Badge>
                           )}
@@ -672,29 +581,7 @@ export default function BMNTools() {
                             </Badge>
                           )}
                         </div>
-
                         <p className="text-xs text-gray-500 mb-3">{new Date(doc.createdAt).toLocaleString("id-ID")}</p>
-
-                        {/* Progress Bar and Timer for Processing Documents */}
-                        {doc.status === "processing" && doc.remainingTime && doc.remainingTime > 0 && (
-                          <div className="mb-4 space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-600">Progress</span>
-                              <div className="flex items-center text-blue-600">
-                                <Timer className="w-3 h-3 mr-1" />
-                                <span className="font-mono">{formatTime(doc.remainingTime)}</span>
-                              </div>
-                            </div>
-                            <Progress 
-                              value={getProgressPercentage(doc)} 
-                              className="h-2 bg-gray-200 transition-all duration-300 ease-in-out" 
-                            />
-                            <p className="text-xs text-gray-500 text-center">
-                              Estimasi selesai dalam {formatTime(doc.remainingTime)}
-                            </p>
-                          </div>
-                        )}
-
                         {doc.status === "completed" && (
                           <div className="space-y-2">
                             {doc.mainDocumentId && (
@@ -730,5 +617,5 @@ export default function BMNTools() {
         </div>
       </div>
     </div>
-  )\
+  )
 }
