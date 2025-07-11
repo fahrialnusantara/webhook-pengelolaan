@@ -540,6 +540,10 @@ export default function BMNTools() {
                       </>
                     )}
                   </Button>
+                  <div className="mt-3 text-center text-xs text-gray-500 flex items-center justify-center">
+                    <AlertCircle className="w-4 h-4 mr-1.5 text-yellow-600" />
+                    <span>Aplikasi ini berfungsi sebagai alat bantu. Mohon verifikasi kembali setiap dokumen yang dihasilkan untuk memastikan akurasi dan kesesuaian.</span>
+                  </div>
                 </form>
               </CardContent>
             </Card>
