@@ -479,14 +479,18 @@ export default function BMNTools() {
                     <Label htmlFor="hal" className="text-gray-700 font-medium">
                       Hal <span className="text-red-500">*</span>
                     </Label>
-                    <Textarea
+
+                      <Input
                       id="hal"
-                      value={formData.hal}
+                      type="text"
+                      value={formData.hal || ""}
                       onChange={(e) => handleInputChange("hal", e.target.value)}
-                      className="border-gray-200 focus:border-blue-400"
                       placeholder="masukkan perihal surat ..."
+                      className="border-gray-200 focus:border-blue-400"
                       required
-                    />
+                      />
+                    
+
                   </div>
 
                   {/* BMN Details */}
